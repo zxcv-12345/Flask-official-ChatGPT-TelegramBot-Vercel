@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 
 import logging
-
+import openai
 import telegram, os
 from flask import Flask, request
 from telegram.ext import Dispatcher, MessageHandler, Filters
+import Updater, CommandHandler
 
 
 
@@ -101,9 +102,44 @@ def reply_handler(bot, update):
 # New a dispatcher for bot
 dispatcher = Dispatcher(bot, None)
 
+def start(update, context):
+    context.bot.send_message(chat_id=update.message.chat_id, text='你好，欢迎调戏可爱的雌堕弱受緒山まひろ酱！')
+
+def menu(update, context):
+    context.bot.send_message(chat_id=update.message.chat_id, text='能给緒山まひろ的命令！:\n/menu  让主人们康康緒山まひろ里面都有什么扒！\n/ping  和緒山まひろ打个招呼扒~！\n/gpt  没错喔~緒山まひろ酱内置了ChatGPT讷~~！\n/search [搜索内容]  緒山まひろ内置的sukebei.nyaa.si种子站搜索')
+
+def ping(update, context):
+    sticker_id = "CAACAgUAAxkBAAGuYglkJc1MJmBhBBgNyhsrIEfW7URPTAACfAkAAoThKVW8g26jtyadwi8E"
+    context.bot.send_sticker(chat_id=update.message.chat_id, sticker=sticker_id)
+
+def search(update, context):
+    query = ' '.join(context.args)
+    url = f'https://sukebei.nyaa.si/?f=0&c=0_0&q={query}'
+    response = requests.get(url)
+    results = response.json()
+
+    if results:
+        context.bot.send_message(chat_id=update.message.chat_id, text=results[0]['title'])
+        context.bot.send_message(chat_id=update.message.chat_id, text=results[0]['url'])
+    else:
+        context.bot.send_message(chat_id=update.message.chat_id, text='緒山まひろ酱哭唧唧的告诉主人...没有找到相关结果呐~~~')
+
 # Add handler for handling message, there are many kinds of message. For this handler, it particular handle text
 # message.
 dispatcher.add_handler(MessageHandler(Filters.text, reply_handler))
+
+def main():
+    updater = Updater(token='TELEGRAM_BOT_TOKEN', use_context=True)
+    dp = updater.dispatcher
+
+    dp.add_handler(CommandHandler("start", start))
+    dp.add_handler(CommandHandler("menu", menu))
+    dp.add_handler(CommandHandler("search", search))
+    dp.add_handler(MessageHandler(Filters.regex('^/ping$'), ping))
+    dp.add_handler(MessageHandler(Filters.text & ~Filters.command, gpt))
+
+    updater.start_polling()
+    updater.idle()
 
 if __name__ == "__main__":
     # Running server
